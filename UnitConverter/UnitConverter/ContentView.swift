@@ -8,50 +8,93 @@
 
 import SwiftUI
 
+
+enum TimeUnit: String, CaseIterable{
+    case Nanosecond
+    case Microsecond
+    case Millisecond
+    case Second
+    case Minute
+    case Hour
+    case Day
+}
+
+class ConverterViewMdel: ObservableObject {
+    
+    @Published var sourceText = "" {
+        didSet {
+            calculateDestination()
+        }
+    }
+
+    @Published var destinationText = ""
+    
+    @Published var sourceUnit = TimeUnit.Nanosecond {
+        didSet {
+            destinationText = sourceText
+        }
+    }
+    
+    @Published var destinationUnit = TimeUnit.Nanosecond {
+        didSet {
+             destinationText = sourceText
+        }
+    }
+    
+    func calculateDestination() {
+        
+        guard  let sourceValue = Double(sourceText) else {
+            return
+        }
+        
+        switch destinationUnit {
+        case .Nanosecond:
+            destinationText = String(sourceValue / 10.0)
+        case .Microsecond:
+            destinationText = String(sourceValue / 200.0)
+        case.Millisecond:
+            destinationText = String(sourceValue / 300.0)
+        case .Second:
+            destinationText = String(sourceValue / 60.0)
+        case .Minute:
+            destinationText = String(sourceValue / 400.0)
+        case .Hour:
+            destinationText = String(sourceValue / 500.0)
+        case .Day:
+            destinationText = String(sourceValue / 800.0)
+        }
+    }
+    
+}
+
 struct ContentView: View {
-    let conversions = ["Area", "Energy", "Length", "Speed", "Time", "Temperature"]
-    @State private var selectedUnitType = 0
     
-    let sourceUnits = ["Nanosecond", "Microsecond", "Millisecond", "Second", "Minute", "Hour", "Day"]
-    @State private var selectedSourceUnitType = 0
-    @State private var sourceText = ""
-    
-    
-    let destinationUnits = ["Nanosecond", "Microsecond", "Millisecond", "Second", "Minute", "Hour", "Day"]
-    @State private var selectedDestinationUnitType = 0
-    @State private var destinationText = ""
+    @ObservedObject var cvm = ConverterViewMdel()
     
     var body: some View {
         
         NavigationView {
             
             Form {
-                
-                Section(header: Text("Select unit type you want to convert?")) {
-                    Picker("Conversion type", selection: $selectedUnitType) {
-                        ForEach(0 ..< conversions.count) {
-                            Text("\(self.conversions[$0])")
+            
+                Section {
+                    TextField("Enter", text: $cvm.sourceText).keyboardType(.decimalPad)
+                    Picker("Select Unit", selection: $cvm.sourceUnit) {
+                        ForEach(TimeUnit.allCases, id: \.self) {
+                            Text($0.rawValue)
                         }
                     }
                 }
                 
                 Section {
-                    TextField("Enter", text: $sourceText).keyboardType(.decimalPad)
-                    Picker("Select Unit", selection: $selectedSourceUnitType) {
-                        ForEach(0 ..< sourceUnits.count) {
-                            Text("\(self.sourceUnits[$0])")
+                    TextField("Enter", text: $cvm.destinationText).keyboardType(.decimalPad).disabled(true)
+                    Picker("Select Unit", selection: $cvm.destinationUnit) {
+                        ForEach(TimeUnit.allCases, id: \.self) {
+                            Text($0.rawValue)
                         }
                     }
                 }
                 
-                Section {
-                    TextField("Enter", text: $destinationText).keyboardType(.decimalPad)
-                    Picker("Select Unit", selection: $selectedDestinationUnitType) {
-                        ForEach(0 ..< destinationUnits.count) {
-                            Text("\(self.destinationUnits[$0])")
-                        }
-                    }
-                }
             }.navigationBarTitle("Unit Converter")
         }
     }
