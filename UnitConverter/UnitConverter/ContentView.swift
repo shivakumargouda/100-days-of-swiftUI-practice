@@ -19,7 +19,13 @@ enum TimeUnit: String, CaseIterable{
     case Day
 }
 
+enum textField : String {
+    case source, destination, none
+}
+    
 class ConverterViewMdel: ObservableObject {
+    
+    @Published var editing = textField.none
     
     @Published var sourceText = "" {
         didSet {
@@ -27,26 +33,36 @@ class ConverterViewMdel: ObservableObject {
         }
     }
 
-    @Published var destinationText = ""
+    @Published var destinationText = "" {
+        didSet {
+            calculateSource()
+        }
+    }
     
     @Published var sourceUnit = TimeUnit.Nanosecond {
         didSet {
-            destinationText = sourceText
+            calculateDestination()
         }
     }
     
     @Published var destinationUnit = TimeUnit.Nanosecond {
         didSet {
-             destinationText = sourceText
+             calculateDestination()
         }
     }
     
     func calculateDestination() {
         
-        guard  let sourceValue = Double(sourceText) else {
+        guard self.editing == textField.source else {
             return
         }
         
+        self.destinationText = self.sourceText.uppercased()
+        
+        guard  let sourceValue = Double(sourceText) else {
+            return
+        }
+
         switch destinationUnit {
         case .Nanosecond:
             destinationText = String(sourceValue / 10.0)
@@ -65,6 +81,15 @@ class ConverterViewMdel: ObservableObject {
         }
     }
     
+    func calculateSource() {
+        
+        guard self.editing == textField.destination else {
+            return
+        }
+        
+        self.sourceText  = self.destinationText.lowercased()
+    }
+    
 }
 
 struct ContentView: View {
@@ -78,7 +103,12 @@ struct ContentView: View {
             Form {
             
                 Section {
-                    TextField("Enter", text: $cvm.sourceText).keyboardType(.decimalPad)
+                    TextField("Enter", text: $cvm.sourceText, onEditingChanged: {_ in
+                        self.cvm.editing = textField.source
+                    }, onCommit: {
+                        self.cvm.editing = textField.none
+                    }).keyboardType(.decimalPad)
+                    
                     Picker("Select Unit", selection: $cvm.sourceUnit) {
                         ForEach(TimeUnit.allCases, id: \.self) {
                             Text($0.rawValue)
@@ -87,7 +117,12 @@ struct ContentView: View {
                 }
                 
                 Section {
-                    TextField("Enter", text: $cvm.destinationText).keyboardType(.decimalPad).disabled(true)
+                    TextField("Enter", text: $cvm.destinationText, onEditingChanged: {_ in
+                         self.cvm.editing = textField.destination
+                    }, onCommit: {
+                        self.cvm.editing = textField.none
+                    }).keyboardType(.decimalPad)
+                    
                     Picker("Select Unit", selection: $cvm.destinationUnit) {
                         ForEach(TimeUnit.allCases, id: \.self) {
                             Text($0.rawValue)
